@@ -36,3 +36,5 @@ FROM Project..CovidDeaths
 GROUP BY location, population
 ORDER BY PercentPopulationInfected DESC
 
+
+SELECT
