@@ -58,26 +58,10 @@ GROUP BY continent
 ORDER BY TotalDeathContinent DESC
 
 -- global numbers
-SELECT date,SUM(CONVERT(int,new_cases)) AS TotalNewCases
-FROM Project..CovidDeaths 
-GROUP BY date
-ORDER BY 1
-
-Select date, MAX(CONVERT(int,total_deaths)) AS MaxTotalDeaths, MAX((CONVERT(float,total_deaths)/CONVERT(float,total_cases)))*100  AS PercentageDeaths
-From Project..CovidDeaths
---Where location like '%states%'
-Group By date
-order by 1--,2
-
-SELECT dea.continent, dea.location, dea.date, population, vac.new_vaccinations, 
-	SUM(CONVERT(bigint, ISNULL(vac.new_vaccinations, 0))) OVER (PARTITION BY dea.location ORDER BY dea.location)
-	AS TotalVaccByCountry
-FROM Project..CovidDeaths dea
-JOIN Project..CovidVaccinations vac
-	ON dea.location = vac.location
-	AND dea.date = vac.date
-ORDER BY 2,3
-
+--SELECT date,SUM(CONVERT(int,new_cases)) AS TotalNewCases
+--FROM Project..CovidDeaths 
+--GROUP BY date
+--ORDER BY 1
 
 -- Population vs Vaccinations
 
@@ -86,10 +70,30 @@ SELECT dea.continent,dea.location,dea.date,dea.population,vac.new_vaccinations,
         PARTITION BY dea.location 
         ORDER BY dea.date 
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS RollingPeopleVaccinated
+    ) AS PeopleVaccinated
 FROM Project..CovidDeaths dea
 JOIN Project..CovidVaccinations vac
 	 ON dea.location = vac.location
        AND dea.date = vac.date
 --WHERE dea.continent IS NOT NULL 
 ORDER BY 2,3
+
+-- Using CTE
+With PopvsVac (continent, location, date, population, new_vaccinations, PeopleVaccinated)
+as 
+(
+SELECT dea.continent,dea.location,dea.date,dea.population,vac.new_vaccinations,
+	   SUM(ISNULL(CONVERT(BIGINT, vac.new_vaccinations), 0)) OVER (
+        PARTITION BY dea.location 
+        ORDER BY dea.date 
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS PeopleVaccinated
+FROM Project..CovidDeaths dea
+JOIN Project..CovidVaccinations vac
+	 ON dea.location = vac.location
+       AND dea.date = vac.date
+--WHERE dea.continent IS NOT NULL 
+--ORDER BY 2,3
+)
+SELECT *, (PeopleVaccinated/population)*100 as PercentageVacc
+FROM PopvsVac
