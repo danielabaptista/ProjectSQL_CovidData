@@ -97,3 +97,33 @@ JOIN Project..CovidVaccinations vac
 )
 SELECT *, (PeopleVaccinated/population)*100 as PercentageVacc
 FROM PopvsVac
+
+
+-- Using TEMP Table
+DROP Table if exists #PercentPopulationVaccinated
+CREATE TABLE #PercentPopulationVaccinated
+(
+Continent nvarchar(255),
+Location nvarchar(255),
+Date datetime,
+Population numeric,
+New_vaccinations numeric,
+PeopleVaccinated numeric
+)
+
+INSERT INTO #PercentPopulationVaccinated
+SELECT dea.continent,dea.location,dea.date,dea.population,vac.new_vaccinations,
+	   SUM(ISNULL(CONVERT(BIGINT, vac.new_vaccinations), 0)) OVER (
+        PARTITION BY dea.location 
+        ORDER BY dea.date 
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS PeopleVaccinated
+FROM Project..CovidDeaths dea
+JOIN Project..CovidVaccinations vac
+	 ON dea.location = vac.location
+       AND dea.date = vac.date
+--WHERE dea.continent IS NOT NULL 
+--ORDER BY 2,3
+
+Select *, (PeopleVaccinated/Population)*100 as PercentageVacc
+From #PercentPopulationVaccinated
