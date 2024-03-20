@@ -127,3 +127,17 @@ JOIN Project..CovidVaccinations vac
 
 Select *, (PeopleVaccinated/Population)*100 as PercentageVacc
 From #PercentPopulationVaccinated
+
+-- creating a View
+CREATE VIEW PercentPopulationVaccinated AS
+SELECT dea.continent,dea.location,dea.date,dea.population,vac.new_vaccinations,
+	   SUM(ISNULL(CONVERT(BIGINT, vac.new_vaccinations), 0)) OVER (
+        PARTITION BY dea.location 
+        ORDER BY dea.date 
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS PeopleVaccinated
+FROM Project..CovidDeaths dea
+JOIN Project..CovidVaccinations vac
+	 ON dea.location = vac.location
+       AND dea.date = vac.date
+--ORDER BY 2,3
